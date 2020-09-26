@@ -44,6 +44,7 @@
 (local shortest-path (require :shortest-path))
 (local TileContentView (require :tile-content-view))
 (local TileKind (require :tile-kind))
+(local tracking (require :tracking))
 (local UnitStatus (require :unit-status))
 (local make-tileset (require :tileset))
 (local Screens (require :screens))
@@ -235,10 +236,14 @@
   nil)
 
 (lambda attack [attacker victim map]
-  (when (= (victim:damage 1) :death)
-    (if (Unit.hero? victim)
-        (on-hero-death)
-        (remove-unit victim map)))
+  (let [damage 1]
+    (when (Unit.hero? victim)
+      (tracking.hero-damaged damage))
+
+    (when (= (victim:damage damage) :death)
+      (if (Unit.hero? victim)
+          (on-hero-death)
+          (remove-unit victim map))))
   nil)
 
 (lambda move-unit-to [unit map x y]
@@ -330,6 +335,8 @@
                     :format
                     item)))))
 
+  (tracking.on-new-turn)
+
   (var prevent-enemies-move? false)
   (local action-taken?
          (if (action:move?)
@@ -380,6 +387,7 @@
       (each [i enemy (ipairs enemies)]
         (enemy:turn-elapsed))
       (reset-sprite-batch map tileset)))
+
   nil)
 
 (lambda love.load []
@@ -390,7 +398,7 @@
                               :show-fps? false
                               :show-frame-durations? false
                               :show-tile-contents? false
-                              :fatal-warnings? false
+                              :fatal-warnings? true
                               :fov-enabled? true}))
   (global screens (Screens.new (GameScreen.new)))
   (global event-handlers (EventHandlers.new))
